@@ -219,6 +219,8 @@ class DatasetsTestConfig:
     # path to test dataset
     test_path: str = MISSING
     types_path: Optional[str] = None
+    title_col: Optional[str] = None
+    text_col: Optional[str] = None
 
 
 @dataclass

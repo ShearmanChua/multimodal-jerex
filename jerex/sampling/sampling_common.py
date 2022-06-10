@@ -530,9 +530,12 @@ def collate_fn_padding(batch):
     for key in keys:
         samples = [s[key] for s in batch]
 
-        if not batch[0][key].shape:
-            padded_batch[key] = torch.stack(samples)
+        if key != 'tokens':
+            if not batch[0][key].shape:
+                padded_batch[key] = torch.stack(samples)
+            else:
+                padded_batch[key] = util.padded_stack([s[key] for s in batch])
         else:
-            padded_batch[key] = util.padded_stack([s[key] for s in batch])
+            padded_batch[key] = samples
 
     return padded_batch

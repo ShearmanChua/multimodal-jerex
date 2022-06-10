@@ -23,7 +23,7 @@ def inference(cfg: TestConfig) -> None:
     util.config_to_abs_paths(cfg.model, 'model_path', 'tokenizer_path', 'encoder_config_path')
     util.config_to_abs_paths(cfg.misc, 'cache_path')
 
-    model.test_on_df(cfg)
+    results_df = model.test_on_df(cfg)
     # results_df = model.test_on_fly(cfg)
 
 

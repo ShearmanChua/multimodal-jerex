@@ -3,11 +3,13 @@ dataset:
   # test_path: ./data/datasets/docred_joint/test_joint.json
   # test_path: ./data/datasets/docred_joint/test_documents.csv
   types_path: ./data/datasets/docred_joint/types.json
+  title_col: 'title'
+  text_col: 'text'
 
 model:
-  model_path: ./data/models/docred_joint/joint_multi_instance/model.ckpt #./data/models/docred_joint/joint_multi_instance/model.ckpt
-  tokenizer_path: ./data/models/docred_joint/joint_multi_instance #./data/models/docred_joint/joint_multi_instance
-  encoder_config_path: ./data/models/docred_joint/joint_multi_instance #./data/models/docred_joint/joint_multi_instance
+  model_path:   ./data/models/docred_joint/joint_multi_instance/model.ckpt #./data/models/dwie/model.ckpt
+  tokenizer_path: ./data/models/docred_joint/joint_multi_instance #./data/models/dwie
+  encoder_config_path: ./data/models/docred_joint/joint_multi_instance #./data/models/dwie
 
 inference:
   test_batch_size: 1
@@ -22,5 +24,5 @@ distribution:
 
 hydra:
   run:
-    dir: ./data/runs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    dir: ./data/runs/${now:%Y-%m-%d}/${now:%H-%M-%S}/dwie_1000
   output_subdir: run_config

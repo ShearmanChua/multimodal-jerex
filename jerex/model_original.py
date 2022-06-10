@@ -3,24 +3,16 @@ import pickle
 import warnings
 from multiprocessing import Lock
 
-import re
-import torch
-
-# torch.multiprocessing.set_start_method('spawn')
-
-import transformers
-import pandas as pd
 import pytorch_lightning as pl
+import torch
+import transformers
+from pytorch_lightning import loggers
 from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
 from transformers import AdamW, BertConfig, BertTokenizer
 
 from configs import TrainConfig, TestConfig
-from spacy.lang.en import English
 from jerex import models, util
-from jerex.task_types import TaskType
 from jerex.data_module import DocREDDataModule
-from jerex.entities import Document, Token, Sentence
-from jerex.sampling import sampling_joint, sampling_classify
 
 _predictions_write_lock = Lock()
 
@@ -152,39 +144,32 @@ class JEREXModel(pl.LightningModule):
 
     def test_step(self, batch, batch_idx):
         """ Implements a test step, i.e. evaluation of test dataset against ground truth """
-        # return self._inference(batch, batch_idx)
-        return self._inference_on_csv(batch,batch_idx)
-
-    # def test_epoch_end(self, outputs):
-    #     """ Loads current epoch's test set predictions from disk and computes test metrics """
-    #     if self._do_eval():
-    #         predictions = self._load_predictions()
-
-    #         # compute evaluation metrics
-    #         metrics = self._evaluator.compute_metrics(self._eval_test_gt, predictions)
-
-    #         # log metrics
-    #         for task, metrics in metrics.items():
-    #             for metric_name, metric_value in metrics.items():
-    #                 self.log(f'{task}_{metric_name}', metric_value)
-
-    #         if self._store_examples:
-    #             docs = self.trainer.datamodule.test_dataset.documents
-    #             self._evaluator.store_examples(self._eval_test_gt, predictions, docs, self._examples_filename)
-
-    #         if self._store_predicitons:
-    #             docs = self.trainer.datamodule.test_dataset.documents
-    #             self._evaluator.store_predictions(predictions, docs, self._predictions_filename)
-
-    #         self._delete_predictions()
-
-    #     self._barrier()
+        return self._inference(batch, batch_idx)
 
     def test_epoch_end(self, outputs):
+        """ Loads current epoch's test set predictions from disk and computes test metrics """
+        if self._do_eval():
+            predictions = self._load_predictions()
 
-        if os.path.isfile('./temp.csv'):
-            df = pd.read_csv('./temp.csv')
-            print("Results dataframe head: ", df.head())
+            # compute evaluation metrics
+            metrics = self._evaluator.compute_metrics(self._eval_test_gt, predictions)
+
+            # log metrics
+            for task, metrics in metrics.items():
+                for metric_name, metric_value in metrics.items():
+                    self.log(f'{task}_{metric_name}', metric_value)
+
+            if self._store_examples:
+                docs = self.trainer.datamodule.test_dataset.documents
+                self._evaluator.store_examples(self._eval_test_gt, predictions, docs, self._examples_filename)
+
+            if self._store_predicitons:
+                docs = self.trainer.datamodule.test_dataset.documents
+                self._evaluator.store_predictions(predictions, docs, self._predictions_filename)
+
+            self._delete_predictions()
+
+        self._barrier()
 
     def _inference(self, batch, batch_index):
         """ Converts prediction results of an epoch and stores the predictions on disk for later evaluation"""
@@ -199,64 +184,6 @@ class JEREXModel(pl.LightningModule):
                 res = dict(doc_id=doc_id.item(), predictions=doc_predictions)
                 with open(self._tmp_predictions_filename, 'ab+') as fp:
                     pickle.dump(res, fp)
-
-    def _inference_on_csv(self, batch, batch_index):
-        """ Converts prediction results of an epoch and stores the predictions on disk for later evaluation"""
-        # for key in batch.keys():
-        #     print(key,batch[key].size())
-        output = self(**batch, inference=True)
-
-        print(batch['tokens'])
-
-        # evaluate batch
-        # _, mentions, clusters, entities, relations = self._evaluator.convert_batch(**output, batch=batch)[0]
-
-        # evaluate batch
-        predictions = self._evaluator.convert_batch(**output, batch=batch)
-
-        for doc_id, tokens,(_, mentions, clusters, entities, relations) in zip(batch['doc_ids'], batch['tokens'],predictions):
-
-            print("Entities: ",entities)
-            print("\n")
-            print("Relations: ",relations)
-            print("\n")
-
-            relations_output = []
-
-            for sub, obj, relation_type in relations:
-            
-                sub_spans = list(sub[0])
-                sub_type = sub[1]
-                obj_spans = list(obj[0])
-                obj_type = obj[1]
-
-                
-
-                for sub_span in sub_spans:
-                    for obj_span in obj_spans:
-                        relations_output.append(
-                            {
-                                'head': ' '.join(tokens[sub_span[0]:sub_span[1]]),
-                                'head_type': sub_type,
-                                'tail': ' '.join(tokens[obj_span[0]:obj_span[1]]),
-                                'tail_type': obj_type,
-                                'relation': relation_type
-                            }
-                        )
-
-            print(relations_output)
-
-            temp_df = pd.DataFrame(columns=['doc_id','entities','relations','tokens'])
-            temp_df.loc[-1] = [doc_id.item(),entities,relations,tokens]  # adding a row
-            temp_df.index = temp_df.index + 1  # shifting index
-            temp_df = temp_df.sort_index()  # sorting by index
-
-            if not os.path.isfile('./temp.csv'):
-                temp_df.to_csv('./temp.csv',index=False)
-            else:
-                temp_df.to_csv('./temp.csv', mode='a', index=False, header=False)
-
-
 
     def configure_optimizers(self):
         """ Created and configures optimizer and learning rate schedule """
@@ -460,212 +387,3 @@ def test(cfg: TestConfig):
     # test
     data_module.setup('test')
     trainer.test(model, datamodule=data_module)
-
-def test_on_df(cfg: TestConfig):
-    """ Loads test dataset and model and creates trainer for JEREX testing """
-    overrides = util.get_overrides_dict(mention_threshold=cfg.model.mention_threshold,
-                                        coref_threshold=cfg.model.coref_threshold,
-                                        rel_threshold=cfg.model.rel_threshold,
-                                        cache_path=cfg.misc.cache_path)
-    model = JEREXModel.load_from_checkpoint(cfg.model.model_path,
-                                            tokenizer_path=cfg.model.tokenizer_path,
-                                            encoder_config_path=cfg.model.encoder_config_path,
-                                            max_spans_inference=cfg.inference.max_spans,
-                                            max_coref_pairs_inference=cfg.inference.max_coref_pairs,
-                                            max_rel_pairs_inference=cfg.inference.max_rel_pairs,
-                                            encoder_path=None, **overrides)
-
-    tokenizer = BertTokenizer.from_pretrained(model.hparams.tokenizer_path,
-                                              do_lower_case=model.hparams.lowercase,
-                                              cache_dir=model.hparams.cache_path)
-
-    # read datasets
-    model_class = models.get_model(model.hparams.model_type)
-    data_module = DocREDDataModule(entity_types=model.hparams.entity_types,
-                                   relation_types=model.hparams.relation_types,
-                                   tokenizer=tokenizer, task_type=model_class.TASK_TYPE,
-                                   test_path=cfg.dataset.test_path,
-                                   test_batch_size=cfg.inference.test_batch_size,
-                                   max_span_size=model.hparams.max_span_size,sampling_processes=cfg.sampling.sampling_processes)
-
-    tb_logger = pl.loggers.TensorBoardLogger('.', 'tb')
-    csv_logger = pl.loggers.CSVLogger('.', 'cv')
-
-    trainer = pl.Trainer(logger=[tb_logger, csv_logger],
-                         profiler="simple", gpus=cfg.distribution.gpus if cfg.distribution.gpus else None,
-                         accelerator=cfg.distribution.accelerator, precision=cfg.misc.precision,
-                         flush_logs_every_n_steps=cfg.misc.flush_logs_every_n_steps,
-                         log_every_n_steps=cfg.misc.log_every_n_steps,
-                         prepare_data_per_node=cfg.distribution.prepare_data_per_node)
-
-    # test
-    data_module.setup('test')
-    trainer.test(model, datamodule=data_module)
-
-    if os.path.isfile('./temp.csv'):
-            df = pd.read_csv('./temp.csv')
-            return df
-    else:
-        return None
-    
-def parse_sentences(tokenizer, jsentences):
-
-    tid = 0
-    sid = 0
-    sentences = []
-
-    # full document sub-word encoding
-    doc_encoding = []
-
-    # parse tokens
-    tok_doc_idx = 0
-    for sidx, jtokens in enumerate(jsentences):
-        sentence_tokens = []
-
-        for tok_sent_idx, token_phrase in enumerate(jtokens):
-            token_encoding = tokenizer.encode(token_phrase, add_special_tokens=False, truncation=True)
-            if not token_encoding:
-                token_encoding = [tokenizer.convert_tokens_to_ids('[UNK]')]
-            span_start, span_end = (len(doc_encoding), len(doc_encoding) + len(token_encoding))
-
-            token = Token(tid, tok_doc_idx, tok_sent_idx, span_start, span_end, token_phrase)
-            tid += 1
-
-            sentence_tokens.append(token)
-            doc_encoding += token_encoding
-
-            tok_doc_idx += 1
-
-        sentence = Sentence(sid, sidx, sentence_tokens)
-        sid += 1
-
-        sentences.append(sentence)
-
-    return sentences, doc_encoding
-
-
-def inference_on_fly(model, tokenizer, paras, task):
-    """ For running inference on one sample passed in, on-the-fly either through command line or API call"""
-
-    nlp = English()
-    nlp.add_pipe(nlp.create_pipe('sentencizer'))
-
-    relations_output = []
-
-    for doc_idx, para in enumerate(paras):
-
-        str_sents = list(nlp(para).sents)
-        token_sents = []
-        num_tokens = 0
-        for sent in str_sents:
-            tokens = list(nlp.tokenizer(sent.text))
-            tokens = [token.text.strip() for token in tokens]
-            if num_tokens + len(tokens) > 500:
-                break
-            num_tokens += len(tokens)
-            token_sents.append(tokens)
-
-        sentences, doc_encoding = parse_sentences(tokenizer, token_sents)
-        doc = Document(doc_idx, tokens, sentences, [], [], doc_encoding, 'generic')
-
-        # doc = Document(doc_id=idx, tokens=[0,], sentences: List[Sentence],
-        #          entities: List[Entity], relations: List[Relation], encoding: List[int], title: str)
-
-        if task == TaskType.JOINT:
-            samples = sampling_joint.create_joint_inference_sample(doc, model.hparams.max_span_size)
-        elif task == TaskType.MENTION_LOCALIZATION:
-            samples = sampling_classify.create_mention_classify_inference_sample(doc, model.hparams.max_span_size)
-        elif task == TaskType.COREFERENCE_RESOLUTION:
-            samples = sampling_classify.create_coref_classify_inference_sample(doc)
-        elif task == TaskType.ENTITY_CLASSIFICATION:
-            samples = sampling_classify.create_entity_classify_sample(doc)
-        elif task == TaskType.RELATION_CLASSIFICATION:
-            samples = sampling_classify.create_rel_classify_inference_sample(doc)
-        else:
-            raise Exception('Invalid task')
-
-        samples['doc_ids'] = torch.tensor(doc.doc_id, dtype=torch.long)
-        padded_batch = dict()
-        batch = [samples,]
-
-
-        for key in samples.keys():
-            samples = [s[key] for s in batch]
-
-            if not batch[0][key].shape:
-                padded_batch[key] = torch.stack(samples)
-            else:
-                padded_batch[key] = util.padded_stack([s[key] for s in batch])
-
-            print(key, padded_batch[key].shape)
-
-        with torch.no_grad():
-            output = model(**padded_batch, inference=True)
-
-        # evaluate batch
-        _, mentions, clusters, entities, relations = model._evaluator.convert_batch(**output, batch=padded_batch)[0]
-
-        print(entities)
-        print(relations)
-
-        tokens = [item for sublist in token_sents for item in sublist]
-
-
-        for sub, obj, relation_type in relations:
-            
-            sub_spans = list(sub[0])
-            sub_type = sub[1]
-            obj_spans = list(obj[0])
-            obj_type = obj[1]
-
-            for sub_span in sub_spans:
-                for obj_span in obj_spans:
-                    relations_output.append(
-                        {
-                            'head': ' '.join(tokens[sub_span[0]:sub_span[1]]),
-                            'head_type': sub_type,
-                            'tail': ' '.join(tokens[obj_span[0]:obj_span[1]]),
-                            'tail_type': obj_type,
-                            'relation': relation_type
-                        }
-                    )
-
-    relation_df = pd.DataFrame(relations_output)
-
-    return relation_df.drop_duplicates().reset_index(drop=True)
-
-def test_on_fly(cfg: TestConfig):
-    """ Loads test dataset and model and creates trainer for JEREX testing """
-    overrides = util.get_overrides_dict(mention_threshold=cfg.model.mention_threshold,
-                                        coref_threshold=cfg.model.coref_threshold,
-                                        rel_threshold=cfg.model.rel_threshold,
-                                        cache_path=cfg.misc.cache_path)
-    model = JEREXModel.load_from_checkpoint(cfg.model.model_path,
-                                            tokenizer_path=cfg.model.tokenizer_path,
-                                            encoder_config_path=cfg.model.encoder_config_path,
-                                            max_spans_inference=cfg.inference.max_spans,
-                                            max_coref_pairs_inference=cfg.inference.max_coref_pairs,
-                                            max_rel_pairs_inference=cfg.inference.max_rel_pairs,
-                                            encoder_path=None, **overrides).eval()
-
-
-    tokenizer = BertTokenizer.from_pretrained(model.hparams.tokenizer_path,
-                                              do_lower_case=model.hparams.lowercase,
-                                            #   do_lower_case=True,
-                                              cache_dir=model.hparams.cache_path)
-
-    # read datasets
-    model_class = models.get_model(model.hparams.model_type)
-
-    df = pd.read_csv(cfg.dataset.test_path)
-
-    lowercased = 'The three-night cruises will stop at Penang, while the four-night cruises will stop at both Penang and Port Klang near Kuala Lumpur, with a range of shore excursions available to guests in the two ports of call. These include visits to Penang’s St George’s Church and Batu Caves on the outskirts of the Malaysian capital.'
-    uppercased = 'The announcement ends more than two years of cruises-to-nowhere, which came as operators attempt to make cruising safer amid the COVID-19 pandemic. Guests are required to have six months\' validity on their passports and must update the MySejahtera app before they depart. They are also required to comply with local vaccination requirements. Bookings for the cruises opened on Thursday. “We are thrilled to be the first cruise line in Singapore to reconnect holidaymakers with Asia’s beautiful destinations once again,” said Royal Caribbean\'s Asia-Pacific vice president and managing director Angie Stephen. “The vibrant and culture-rich cities of Penang and Kuala Lumpur have so much to offer, and that is only the beginning.” Singapore Tourism Board\'s director of cruise Annie Chang said that holidaymakers can look forward to more international cruises in the near future. "We have been working closely with various governments in southeast asia to align on cruise protocols and policies, and are excited to bring back port calls in Malaysia for sailings as a start,” she said. “Port calls will provide more vacation options and we look forward to seeing more first-time and repeat cruisers in the coming year as more ports in the region open up.”'
-
-    docs = [lowercased+uppercased,]
-
-    relation_df = inference_on_fly(model, tokenizer, docs,'joint')
-    relation_df.to_csv('output.csv')
-
-
-    return relation_df

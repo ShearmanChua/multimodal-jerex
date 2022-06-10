@@ -180,6 +180,9 @@ class TokenSpan:
     def __str__(self):
         return ' '.join([str(t) for t in self._tokens])
 
+    def __tokens__(self):
+        return [str(t) for t in self._tokens]
+
     def __repr__(self):
         return self.__str__()
 

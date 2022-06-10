@@ -24,7 +24,7 @@ class DocREDDataset(TorchDataset):
     INFERENCE_MODE = 'inference'
 
     def __init__(self, dataset_path, entity_types, relation_types, tokenizer, neg_mention_count=200,
-                 neg_rel_count=200, neg_coref_count=200, max_span_size=10, neg_mention_overlap_ratio=0.5):
+                 neg_rel_count=200, neg_coref_count=200, max_span_size=10, neg_mention_overlap_ratio=0.5, title_col='title',text_col='text'):
         self._dataset_path = dataset_path
         self._entity_types = entity_types
         self._relation_types = relation_types
@@ -52,7 +52,11 @@ class DocREDDataset(TorchDataset):
         self._pid = 0
         self._tid = 0
 
-        self._parse_dataset(dataset_path)
+        #for loading data from csv
+        self._title_col = title_col
+        self._text_col = text_col
+
+        self._parse_dataset(dataset_path,self._title_col,self._text_col)
 
     def switch_mode(self, mode):
         self._mode = mode
@@ -65,25 +69,30 @@ class DocREDDataset(TorchDataset):
         nlp = English()
         nlp.add_pipe(nlp.create_pipe('sentencizer'))
 
-        paras = text.split("/n")
+        paras = text.split("\n")
+        paras = [para for para in paras if len(para)>1]
+
+        token_sents = []
 
         for doc_idx, para in enumerate(paras):
 
             str_sents = list(nlp(para).sents)
-            token_sents = []
+            
             num_tokens = 0
             for sent in str_sents:
                 tokens = list(nlp.tokenizer(sent.text))
                 tokens = [token.text.strip() for token in tokens]
-                if num_tokens + len(tokens) > 500:
-                    break
+
                 if len(tokens) > 0:
                     num_tokens += len(tokens)
                     token_sents.append(tokens)
                 
+        if len(token_sents) < 1:
+            token_sents = [['Document','text','cannot','be','processed'],]
+
         return token_sents
 
-    def _parse_dataset(self, dataset_path):
+    def _parse_dataset(self, dataset_path, title_col = 'title', text_col = 'text'):
 
         if dataset_path.endswith('json'):
             documents = json.load(open(dataset_path))
@@ -92,22 +101,24 @@ class DocREDDataset(TorchDataset):
         elif dataset_path.endswith('csv'):
             df = pd.read_csv(dataset_path)
 
-            df['text'] = df['text'].apply(lambda string: re.sub('\n+', '\n', string))
-            df['text'] = df['text'].apply(lambda string: re.sub('\n \n', ' ', string))
+            df = df.head(1000)
 
-            df['sents'] = df['text'].apply(lambda text: self.process_csv_text(text))
+            df[text_col] = df[text_col].apply(lambda string: re.sub('\n+', '\n', string))
+            df[text_col] = df[text_col].apply(lambda string: re.sub('\n \n', '\n', string))
 
-            for idx, row in df.iterrows():
+            df_copy = df.copy(deep=True)
+
+            df_copy.rename(columns = {title_col:'title'}, inplace = True)
+
+            df_copy['sents'] = df_copy[text_col].apply(lambda text: self.process_csv_text(text))
+
+            for idx, row in df_copy.iterrows():
                 
                 if len(row['sents']) > 0:
                     self._parse_document(row)
-                # else:
-                #     print(row['sents'])
-                #     print(row['text'])
-
 
     def _parse_document(self, doc):
-        title = doc['title']
+        title = doc['title'] if 'title' in doc else 'No title'
         jsents = doc['sents']
         jrelations = doc['labels'] if 'labels' in doc else []
         jentities = doc['vertexSet'] if 'vertexSet' in doc else []
@@ -137,7 +148,7 @@ class DocREDDataset(TorchDataset):
 
             sentence_tokens = []
 
-            if len(doc_encoding) > 500:
+            if len(doc_encoding) >= 700:
                 break
 
             for tok_sent_idx, token_phrase in enumerate(jtokens):
@@ -149,7 +160,7 @@ class DocREDDataset(TorchDataset):
 
                 token = self._create_token(tok_doc_idx, tok_sent_idx, span_start, span_end, token_phrase)
 
-                if len(doc_encoding) + len(token_encoding) > 500:
+                if len(doc_encoding) + len(token_encoding) >= 700:
                     break
 
                 sentence_tokens.append(token)
@@ -289,6 +300,7 @@ class DocREDDataset(TorchDataset):
                 raise Exception('Invalid task')
 
             samples['doc_ids'] = torch.tensor(doc.doc_id, dtype=torch.long)
+            samples['tokens'] = doc.tokens.__tokens__()
             return samples
         else:
             raise Exception('Invalid mode')

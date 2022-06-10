@@ -39,12 +39,10 @@ def create_coref_mention_pairs(valid_mentions, mention_spans, encodings, tokeniz
 
         if pairs:
             # case: more than two spans classified as entity mentions
-            print("pairs")
             batch_coref_pairs.append(torch.tensor(pairs, dtype=torch.long))
             batch_coref_eds.append(torch.tensor(eds, dtype=torch.long))
             batch_coref_sample_masks.append(torch.tensor(pair_sample_masks, dtype=torch.bool))
         else:
-            print("no pairs")
             # case: no more than two spans classified as entity mentions
             batch_coref_pairs.append(torch.zeros([1, 2], dtype=torch.long))
             batch_coref_eds.append(torch.zeros([1], dtype=torch.long))
@@ -105,7 +103,6 @@ def create_clusters(coref_clf: torch.tensor, mention_pairs: torch.tensor, pair_s
 
     for i in range(batch_size):
         doc_valid_mentions = valid_mentions[i].nonzero().view(-1).tolist()
-        print(doc_valid_mentions)
         clusters = None
 
         if doc_valid_mentions and len(doc_valid_mentions)>1:
