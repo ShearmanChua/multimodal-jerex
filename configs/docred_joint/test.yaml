@@ -5,7 +5,7 @@ dataset:
   # test_path: ./data/datasets/docred_joint/test_documents.csv
   types_path: ./data/datasets/docred_joint/types.json
   save_path: ./data
-  # csv_path: ./data/runs/2022-06-14/03-20-20/docred_1000/temp.csv
+  # csv_path: ./data/runs/2022-06-14/08-50-26/docred_1000/temp.csv
   csv_path: ./data/entity_linking.csv
   title_col: 'title'
   text_col: 'text'
