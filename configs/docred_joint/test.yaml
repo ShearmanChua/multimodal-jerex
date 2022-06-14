@@ -1,8 +1,12 @@
 dataset:
   test_path: ./data/datasets/docred_joint/1000_texts.csv
+  # test_path: ./data/datasets/docred_joint/1000_texts_small.csv
   # test_path: ./data/datasets/docred_joint/test_joint.json
   # test_path: ./data/datasets/docred_joint/test_documents.csv
   types_path: ./data/datasets/docred_joint/types.json
+  save_path: ./data
+  # csv_path: ./data/runs/2022-06-14/03-20-20/docred_1000/temp.csv
+  csv_path: ./data/entity_linking.csv
   title_col: 'title'
   text_col: 'text'
 
@@ -24,5 +28,5 @@ distribution:
 
 hydra:
   run:
-    dir: ./data/runs/${now:%Y-%m-%d}/${now:%H-%M-%S}/dwie_1000
+    dir: ./data/runs/${now:%Y-%m-%d}/${now:%H-%M-%S}/docred_1000
   output_subdir: run_config

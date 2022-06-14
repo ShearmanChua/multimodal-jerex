@@ -1,6 +1,9 @@
 import json
 from operator import sub
 import pandas as pd
+import ast
+import os
+import requests
 
 import torch
 import hydra
@@ -19,11 +22,55 @@ def inference(cfg: TestConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
 
     util.config_to_abs_paths(cfg.dataset, 'test_path')
+    util.config_to_abs_paths(cfg.dataset, 'save_path')
+    util.config_to_abs_paths(cfg.dataset, 'csv_path')
     util.config_to_abs_paths(cfg.dataset, 'types_path')
     util.config_to_abs_paths(cfg.model, 'model_path', 'tokenizer_path', 'encoder_config_path')
     util.config_to_abs_paths(cfg.misc, 'cache_path')
 
     results_df = model.test_on_df(cfg)
+    # results_df = pd.read_csv(cfg.dataset.csv_path)
+    # print(results_df.head())
+
+    # relations_df = pd.DataFrame(columns=['doc_id','head','had_type','tail','tail_type','relation'])
+
+    # entity_linking_df = generate_entity_linking_df(cfg, results_df)
+
+    # entity_linking_df.to_csv(os.path.join(cfg.dataset.save_path,"entity_linking.csv"),index=False)
+
+    entity_linking_df = pd.read_csv(cfg.dataset.csv_path)
+
+    df_json = entity_linking_df.to_json(orient="records")
+    df_json = json.loads(df_json)
+    response = requests.post("http://0.0.0.0:8080/df_link", json=df_json)
+
+    df_json = json.dumps(response.json())
+    df = pd.read_json(df_json, orient="records")
+
+    print(df.head())
+    print(df.info())
+
+    # for idx, row in results_df.iterrows():
+    #     doc_id = row['doc_id']
+    #     relations = ast.literal_eval(row['relations'])
+    #     tokens = ast.literal_eval(row['tokens'])
+    #     entities = []
+    #     for relation in relations:
+            # head_entity = " ".join(tokens[relation['head_span'][0]:relation['head_span'][1]])
+            # if head_entity not in entities:
+            #     print("Entity:")
+            #     print(" ".join(tokens[relation['head_span'][0]:relation['head_span'][1]]))
+            #     print(" ".join(tokens[relation['head_span'][0]-100:relation['head_span'][0]]))
+            #     print("\n")
+            #     print(" ".join(tokens[relation['head_span'][1]:relation['head_span'][1]+100]))
+            #     print("\n")
+            #     entities.append(head_entity)
+            # relations_df.loc[-1] = [doc_id,relation['head'],relation['head_type'],relation['tail'],relation['tail_type'],relation['relation']]  # adding a row
+            # relations_df.index = relations_df.index + 1  # shifting index
+            # relations_df = relations_df.sort_index()  # sorting by index
+
+    # print(relations_df.head())
+
     # results_df = model.test_on_fly(cfg)
 
 
@@ -34,6 +81,50 @@ def inference(cfg: TestConfig) -> None:
 
     #     for idx, (subject, relation, object) in triples_df.iterrows():
     #         print(idx_to_node[subject],idx_to_relation[relation],idx_to_node[object])
+
+
+def generate_entity_linking_df(cfg: TestConfig,results_df):
+
+    entities_linking_df = pd.DataFrame(columns=['doc_id','mention', 'mention_type','context_left','context_right'])
+
+    for idx, row in results_df.iterrows():
+        doc_id = row['doc_id']
+        relations = ast.literal_eval(row['relations'])
+        tokens = ast.literal_eval(row['tokens'])
+        entities = []
+        for relation in relations:
+            head_entity = " ".join(tokens[relation['head_span'][0]:relation['head_span'][1]])
+            if head_entity not in entities:
+                print("Head Entity:")
+                print(head_entity)
+                left_context = " ".join(tokens[relation['head_span'][0]-100:relation['head_span'][0]])
+                print("Left context: ",left_context)
+                print("\n")
+                right_context = " ".join(tokens[relation['head_span'][1]:relation['head_span'][1]+100])
+                print("Right context: ",right_context)
+                print("\n")
+                entities_linking_df.loc[-1] = [doc_id, head_entity, relation['head_type'], left_context, right_context]  # adding a row
+                entities_linking_df.index = entities_linking_df.index + 1  # shifting index
+                entities_linking_df = entities_linking_df.sort_index()  # sorting by index
+                entities.append(head_entity)
+
+            tail_entity = " ".join(tokens[relation['tail_span'][0]:relation['tail_span'][1]])
+            if tail_entity not in entities:
+                print("Tail Entity:")
+                print(tail_entity)
+                left_context = " ".join(tokens[relation['tail_span'][0]-100:relation['tail_span'][0]])
+                print("Left context: ",left_context)
+                print("\n")
+                right_context = " ".join(tokens[relation['tail_span'][1]:relation['tail_span'][1]+100])
+                print("Right context: ",right_context)
+                print("\n")
+                entities_linking_df.loc[-1] = [doc_id, tail_entity, relation['tail_type'], left_context, right_context]  # adding a row
+                entities_linking_df.index = entities_linking_df.index + 1  # shifting index
+                entities_linking_df = entities_linking_df.sort_index()  # sorting by index
+                entities.append(tail_entity)
+
+    print(entities_linking_df.head())
+    return entities_linking_df
 
 
 def generate_neo4j_dfs(cfg: TestConfig, results_df):
@@ -56,12 +147,12 @@ def generate_neo4j_dfs(cfg: TestConfig, results_df):
     # nodes_df = pd.DataFrame(columns=['name','entity_type'])
     triples_df = pd.DataFrame(columns=['subject','relation','object'])
 
-    head_nodes_df = results_df[['head', 'head_type']]
+    head_nodes_df = results_df[['doc_id','head', 'head_type']]
     head_nodes_df = head_nodes_df.drop_duplicates()
-    head_nodes_df.columns = ['node_name', 'entity_type']
-    tail_nodes_df = results_df[['tail', 'tail_type']]
+    head_nodes_df.columns = ['doc_id','node_name', 'entity_type']
+    tail_nodes_df = results_df[['doc_id','tail', 'tail_type']]
     tail_nodes_df = tail_nodes_df.drop_duplicates()
-    tail_nodes_df.columns = ['node_name', 'entity_type']
+    tail_nodes_df.columns = ['doc_id','node_name', 'entity_type']
     nodes_df = pd.concat([head_nodes_df, tail_nodes_df]).reset_index(drop=True)
 
     nodes_df['node_id'] = nodes_df.index

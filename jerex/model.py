@@ -204,9 +204,10 @@ class JEREXModel(pl.LightningModule):
         """ Converts prediction results of an epoch and stores the predictions on disk for later evaluation"""
         # for key in batch.keys():
         #     print(key,batch[key].size())
-        output = self(**batch, inference=True)
 
         print(batch['tokens'])
+
+        output = self(**batch, inference=True)
 
         # evaluate batch
         # _, mentions, clusters, entities, relations = self._evaluator.convert_batch(**output, batch=batch)[0]
@@ -216,6 +217,8 @@ class JEREXModel(pl.LightningModule):
 
         for doc_id, tokens,(_, mentions, clusters, entities, relations) in zip(batch['doc_ids'], batch['tokens'],predictions):
 
+            print("Doc ID: ", doc_id.item())
+            print("\n")
             print("Entities: ",entities)
             print("\n")
             print("Relations: ",relations)
@@ -236,18 +239,21 @@ class JEREXModel(pl.LightningModule):
                     for obj_span in obj_spans:
                         relations_output.append(
                             {
-                                'head': ' '.join(tokens[sub_span[0]:sub_span[1]]),
-                                'head_type': sub_type,
-                                'tail': ' '.join(tokens[obj_span[0]:obj_span[1]]),
-                                'tail_type': obj_type,
-                                'relation': relation_type
+                                "head": " ".join(tokens[sub_span[0]:sub_span[1]]),
+                                "head_span": [sub_span[0],sub_span[1]],
+                                "head_type": str(sub_type),
+                                "tail": " ".join(tokens[obj_span[0]:obj_span[1]]),
+                                "tail_span": [obj_span[0],obj_span[1]],
+                                "tail_type": str(obj_type),
+                                "relation": str(relation_type)
                             }
                         )
 
+            relations_output = [i for n, i in enumerate(relations_output) if i not in relations_output[n + 1:]]
             print(relations_output)
 
-            temp_df = pd.DataFrame(columns=['doc_id','entities','relations','tokens'])
-            temp_df.loc[-1] = [doc_id.item(),entities,relations,tokens]  # adding a row
+            temp_df = pd.DataFrame(columns=['doc_id', 'tokens', 'relations'])
+            temp_df.loc[-1] = [doc_id.item(),tokens,relations_output]  # adding a row
             temp_df.index = temp_df.index + 1  # shifting index
             temp_df = temp_df.sort_index()  # sorting by index
 
@@ -669,3 +675,4 @@ def test_on_fly(cfg: TestConfig):
 
 
     return relation_df
+    

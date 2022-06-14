@@ -115,7 +115,7 @@ class DocREDDataset(TorchDataset):
             for idx, row in df_copy.iterrows():
                 
                 if len(row['sents']) > 0:
-                    self._parse_document(row)
+                    self._parse_document_csv(row)
 
     def _parse_document(self, doc):
         title = doc['title'] if 'title' in doc else 'No title'
@@ -136,6 +136,26 @@ class DocREDDataset(TorchDataset):
         doc_tokens = util.flatten([s.tokens for s in sentences])
         self._create_document(doc_tokens, sentences, entities, relations, doc_encoding, title)
 
+    def _parse_document_csv(self, doc):
+        title = doc['title'] if 'title' in doc else 'No title'
+        jsents = doc['sents']
+        doc_id = doc['ID']
+        jrelations = doc['labels'] if 'labels' in doc else []
+        jentities = doc['vertexSet'] if 'vertexSet' in doc else []
+
+        # parse tokens
+        sentences, doc_encoding = self._parse_sentences(jsents)
+
+        # parse entity mentions
+        entities = self._parse_entities(jentities, sentences)
+
+        # parse relations
+        relations = self._parse_relations(jrelations, entities, sentences)
+
+        # create document
+        doc_tokens = util.flatten([s.tokens for s in sentences])
+        self._create_document_csv(doc_tokens, sentences, entities, relations, doc_encoding, title, doc_id)
+
     def _parse_sentences(self, jsentences):
         sentences = []
 
@@ -148,7 +168,7 @@ class DocREDDataset(TorchDataset):
 
             sentence_tokens = []
 
-            if len(doc_encoding) >= 700:
+            if len(doc_encoding) >= 600:
                 break
 
             for tok_sent_idx, token_phrase in enumerate(jtokens):
@@ -160,7 +180,7 @@ class DocREDDataset(TorchDataset):
 
                 token = self._create_token(tok_doc_idx, tok_sent_idx, span_start, span_end, token_phrase)
 
-                if len(doc_encoding) + len(token_encoding) >= 700:
+                if len(doc_encoding) + len(token_encoding) >= 600:
                     break
 
                 sentence_tokens.append(token)
@@ -236,6 +256,13 @@ class DocREDDataset(TorchDataset):
 
     def _create_document(self, tokens, sentences, entities, relations, doc_encoding, title) -> Document:
         document = Document(self._doc_id, tokens, sentences, entities, relations, doc_encoding, title)
+        self._documents[self._doc_id] = document
+        self._doc_id += 1
+
+        return document
+
+    def _create_document_csv(self, tokens, sentences, entities, relations, doc_encoding, title,doc_id) -> Document:
+        document = Document(doc_id, tokens, sentences, entities, relations, doc_encoding, title)
         self._documents[self._doc_id] = document
         self._doc_id += 1
 
