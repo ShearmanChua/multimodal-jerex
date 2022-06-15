@@ -42,7 +42,7 @@ def inference(cfg: TestConfig) -> None:
 
     df_json = entity_linking_df.to_json(orient="records")
     df_json = json.loads(df_json)
-    response = requests.post("http://0.0.0.0:5000/df_link", json=df_json)
+    response = requests.post("http://blink:5000/df_link", json=df_json)
 
     df_json = json.dumps(response.json())
     df = pd.read_json(df_json, orient="records")
