@@ -47,7 +47,7 @@ def inference(cfg: TestConfig) -> None:
     df_json = json.dumps(response.json())
     df = pd.read_json(df_json, orient="records")
 
-    print(df.head())
+    print(df)
     print(df.info())
 
     # for idx, row in results_df.iterrows():
