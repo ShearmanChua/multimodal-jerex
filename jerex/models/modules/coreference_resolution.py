@@ -25,6 +25,7 @@ class CoreferenceResolution(nn.Module):
         # chunk processing to reduce memory usage
         max_pairs = max_pairs if max_pairs is not None else coref_mention_pairs.shape[1]
         coref_eds = self.coref_ed_embeddings(coref_eds)
+
         for i in range(0, coref_mention_pairs.shape[1], max_pairs):
             chunk_corefs = coref_mention_pairs[:, i:i + max_pairs]
             chunk_coref_eds = coref_eds[:, i:i + max_pairs]

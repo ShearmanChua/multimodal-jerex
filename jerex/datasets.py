@@ -168,7 +168,7 @@ class DocREDDataset(TorchDataset):
 
             sentence_tokens = []
 
-            if len(doc_encoding) >= 600:
+            if len(doc_encoding) >= 500:
                 break
 
             for tok_sent_idx, token_phrase in enumerate(jtokens):
@@ -180,7 +180,7 @@ class DocREDDataset(TorchDataset):
 
                 token = self._create_token(tok_doc_idx, tok_sent_idx, span_start, span_end, token_phrase)
 
-                if len(doc_encoding) + len(token_encoding) >= 600:
+                if len(doc_encoding) + len(token_encoding) >= 500:
                     break
 
                 sentence_tokens.append(token)

@@ -202,8 +202,11 @@ class JEREXModel(pl.LightningModule):
 
     def _inference_on_csv(self, batch, batch_index):
         """ Converts prediction results of an epoch and stores the predictions on disk for later evaluation"""
-        # for key in batch.keys():
-        #     print(key,batch[key].size())
+        for key in batch.keys():
+            if key != 'tokens':
+                print(key,batch[key].size())
+            else:
+                print(len(batch[key][0]))
 
         print(batch['tokens'])
 
@@ -628,17 +631,47 @@ def inference_on_fly(model, tokenizer, paras, task):
                 for obj_span in obj_spans:
                     relations_output.append(
                         {
-                            'head': ' '.join(tokens[sub_span[0]:sub_span[1]]),
-                            'head_type': sub_type,
-                            'tail': ' '.join(tokens[obj_span[0]:obj_span[1]]),
-                            'tail_type': obj_type,
-                            'relation': relation_type
+                            "head": " ".join(tokens[sub_span[0]:sub_span[1]]),
+                            "head_span": [sub_span[0],sub_span[1]],
+                            "head_type": str(sub_type),
+                            "tail": " ".join(tokens[obj_span[0]:obj_span[1]]),
+                            "tail_span": [obj_span[0],obj_span[1]],
+                            "tail_type": str(obj_type),
+                            "relation": str(relation_type),
+                            "tokens": tokens
                         }
                     )
 
     relation_df = pd.DataFrame(relations_output)
 
     return relation_df.drop_duplicates().reset_index(drop=True)
+
+def api_call_single(cfg: TestConfig, docs):
+    """ Loads test dataset and model and creates trainer for JEREX testing """
+    overrides = util.get_overrides_dict(mention_threshold=cfg.model.mention_threshold,
+                                        coref_threshold=cfg.model.coref_threshold,
+                                        rel_threshold=cfg.model.rel_threshold,
+                                        cache_path=cfg.misc.cache_path)
+    model = JEREXModel.load_from_checkpoint(cfg.model.model_path,
+                                            tokenizer_path=cfg.model.tokenizer_path,
+                                            encoder_config_path=cfg.model.encoder_config_path,
+                                            max_spans_inference=cfg.inference.max_spans,
+                                            max_coref_pairs_inference=cfg.inference.max_coref_pairs,
+                                            max_rel_pairs_inference=cfg.inference.max_rel_pairs,
+                                            encoder_path=None, **overrides).eval()
+
+
+    tokenizer = BertTokenizer.from_pretrained(model.hparams.tokenizer_path,
+                                              do_lower_case=model.hparams.lowercase,
+                                            #   do_lower_case=True,
+                                              cache_dir=model.hparams.cache_path)
+
+    # read datasets
+    model_class = models.get_model(model.hparams.model_type)
+
+    relation_df = inference_on_fly(model, tokenizer, docs,'joint')
+
+    return relation_df
 
 def test_on_fly(cfg: TestConfig):
     """ Loads test dataset and model and creates trainer for JEREX testing """
@@ -675,4 +708,3 @@ def test_on_fly(cfg: TestConfig):
 
 
     return relation_df
-    

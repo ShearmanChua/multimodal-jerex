@@ -15,6 +15,7 @@ class RelationClassificationMultiInstance(nn.Module):
 
         self.token_distance_embeddings = nn.Embedding(token_dist_embeddings_count, meta_embedding_size)
         self.sentence_distance_embeddings = nn.Embedding(sentence_dist_embeddings_count, meta_embedding_size)
+        self.sentence_embedding_size = sentence_dist_embeddings_count
         self.entity_type_embeddings = nn.Embedding(entity_types, meta_embedding_size)
 
         self.dropout = nn.Dropout(prop_drop)
@@ -30,8 +31,12 @@ class RelationClassificationMultiInstance(nn.Module):
         # obtain relation logits
         # chunk processing to reduce memory usage
         max_pairs = max_pairs if max_pairs is not None else rel_mention_pairs.shape[1]
+        print(max_pairs)
+        print(rel_mention_pairs.shape[1])
         rel_mention_pair_reprs = torch.zeros([batch_size, rel_mention_pairs.shape[1], hidden_size]).to(self._device)
         h = h.unsqueeze(1)
+
+        sentence_embedding_size = torch.tensor(self.sentence_embedding_size-1).to(rel_token_distances.device)
 
         for i in range(0, rel_mention_pairs.shape[1], max_pairs):
             # classify relation candidates
@@ -40,6 +45,7 @@ class RelationClassificationMultiInstance(nn.Module):
             chunk_rel_ctx_masks = rel_ctx_masks[:, i:i + max_pairs]
             chunk_rel_token_distances = rel_token_distances[:, i:i + max_pairs]
             chunk_rel_sentence_distances = rel_sentence_distances[:, i:i + max_pairs]
+            chunk_rel_sentence_distances = torch.where(chunk_rel_sentence_distances>=self.sentence_embedding_size,sentence_embedding_size,chunk_rel_sentence_distances)
             chunk_h = h.expand(-1, chunk_rel_ctx_masks.shape[1], -1, -1)
 
             chunk_rel_logits = self._create_mention_pair_representations(
@@ -60,6 +66,7 @@ class RelationClassificationMultiInstance(nn.Module):
                                              rel_mention_pairs, rel_ctx_masks,
                                              rel_token_distances, rel_sentence_distances,
                                              mention_reprs, h):
+
         rel_token_distances = self.token_distance_embeddings(rel_token_distances)
         rel_sentence_distances = self.sentence_distance_embeddings(rel_sentence_distances)
 
@@ -71,6 +78,7 @@ class RelationClassificationMultiInstance(nn.Module):
         # ctx max pooling
         m = ((rel_ctx_masks == 0).float() * (-1e30)).unsqueeze(-1)
         rel_ctx = m + h
+
         # max pooling
         rel_ctx, rel_ctx_indices = rel_ctx.max(dim=2)
 

@@ -1,12 +1,12 @@
 dataset:
-  test_path: ./data/datasets/docred_joint/1000_texts.csv
+  test_path: ./data/articles_2.csv
   # test_path: ./data/datasets/docred_joint/1000_texts_small.csv
   # test_path: ./data/datasets/docred_joint/test_joint.json
   # test_path: ./data/datasets/docred_joint/test_documents.csv
   types_path: ./data/datasets/docred_joint/types.json
   save_path: ./data
   # csv_path: ./data/runs/2022-06-14/08-50-26/docred_1000/temp.csv
-  csv_path: ./data/entity_linking_copy.csv
+  csv_path: ./data/articles_entity_linking.csv
   title_col: 'title'
   text_col: 'text'
 
@@ -18,11 +18,11 @@ model:
 inference:
   test_batch_size: 1
   max_spans: 200
-  max_coref_pairs: null
+  max_coref_pairs: 50
   max_rel_pairs: 50
 
 distribution:
-  gpus: [0]
+  gpus: []
   accelerator: ''
   prepare_data_per_node: false
 

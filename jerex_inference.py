@@ -36,19 +36,25 @@ def inference(cfg: TestConfig) -> None:
 
     # entity_linking_df = generate_entity_linking_df(cfg, results_df)
 
-    # entity_linking_df.to_csv(os.path.join(cfg.dataset.save_path,"entity_linking.csv"),index=False)
+    # entity_linking_df.to_csv(os.path.join(cfg.dataset.save_path,"articles_entity_linking.csv"),index=False)
 
     entity_linking_df = pd.read_csv(cfg.dataset.csv_path)
 
+    entity_linking_df.fillna("",inplace=True)
+
     df_json = entity_linking_df.to_json(orient="records")
     df_json = json.loads(df_json)
+    
     response = requests.post("http://blink:5000/df_link", json=df_json)
 
-    df_json = json.dumps(response.json())
-    df = pd.read_json(df_json, orient="records")
+    print(type(response.json()))
+
+    df = pd.json_normalize(response.json(), max_level=0)
 
     print(df)
     print(df.info())
+
+    df.to_csv(os.path.join(cfg.dataset.save_path,"articles_entity_linked.csv"),index=False)
 
     # for idx, row in results_df.iterrows():
     #     doc_id = row['doc_id']
@@ -170,11 +176,6 @@ def generate_neo4j_dfs(cfg: TestConfig, results_df):
     return nodes_df, relations_df, triples_df
     
 if __name__ == '__main__':
-
-    # try:
-    #     torch.multiprocessing.set_start_method('spawn')
-    # except RuntimeError:
-    #     pass
 
     inference()
     

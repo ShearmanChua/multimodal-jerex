@@ -54,7 +54,7 @@ def padded_stack(tensors, padding=0):
     return stacked
 
 
-def batch_index(tensor, index, pad=False):
+def batch_index(tensor, index, pad=True):
     if tensor.shape[0] != index.shape[0]:
         raise Exception()
 
