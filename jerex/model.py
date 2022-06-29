@@ -202,13 +202,13 @@ class JEREXModel(pl.LightningModule):
 
     def _inference_on_csv(self, batch, batch_index):
         """ Converts prediction results of an epoch and stores the predictions on disk for later evaluation"""
-        for key in batch.keys():
-            if key != 'tokens':
-                print(key,batch[key].size())
-            else:
-                print(len(batch[key][0]))
+        # for key in batch.keys():
+        #     if key != 'tokens':
+        #         print(key,batch[key].size())
+        #     else:
+        #         print(len(batch[key][0]))
 
-        print(batch['tokens'])
+        # print(batch['tokens'])
 
         output = self(**batch, inference=True)
 
@@ -513,6 +513,7 @@ def test_on_df(cfg: TestConfig):
 
     if os.path.isfile('./temp.csv'):
             df = pd.read_csv('./temp.csv')
+            os.remove('./temp.csv')
             return df
     else:
         return None
@@ -606,16 +607,14 @@ def inference_on_fly(model, tokenizer, paras, task):
             else:
                 padded_batch[key] = util.padded_stack([s[key] for s in batch])
 
-            print(key, padded_batch[key].shape)
-
         with torch.no_grad():
             output = model(**padded_batch, inference=True)
 
         # evaluate batch
         _, mentions, clusters, entities, relations = model._evaluator.convert_batch(**output, batch=padded_batch)[0]
 
-        print(entities)
-        print(relations)
+        print("Entities: ",entities)
+        print("Relations: ",relations)
 
         tokens = [item for sublist in token_sents for item in sublist]
 
@@ -644,7 +643,9 @@ def inference_on_fly(model, tokenizer, paras, task):
 
     relation_df = pd.DataFrame(relations_output)
 
-    return relation_df.drop_duplicates().reset_index(drop=True)
+    relation_df = relation_df.loc[relation_df.astype(str).drop_duplicates().index]
+
+    return relation_df.reset_index(drop=True)
 
 def api_call_single(cfg: TestConfig, docs):
     """ Loads test dataset and model and creates trainer for JEREX testing """

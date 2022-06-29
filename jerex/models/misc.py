@@ -21,7 +21,6 @@ def create_coref_mention_pairs(valid_mentions, mention_spans, encodings, tokeniz
 
         # get spans classified as mentions
         non_zero_indices = valid_mentions[i].nonzero().view(-1)
-        print(non_zero_indices.shape)
         non_zero_spans = mention_spans[i][non_zero_indices].tolist()
         non_zero_indices = non_zero_indices.tolist()
         # if len(non_zero_spans)>40:
@@ -139,15 +138,13 @@ def create_clusters(coref_clf: torch.tensor, mention_pairs: torch.tensor, pair_s
             agg_clustering = AgglomerativeClustering(n_clusters=None, affinity='precomputed',
                                                      linkage='complete', distance_threshold=1 - threshold)
             assignments = agg_clustering.fit_predict(distances)
-            unique_clusters = list(np.unique(assignments))
-            print("unique_clusters",len(unique_clusters))
-
 
             # convert clusters to list
             mx = max(assignments)
             clusters = [[] for _ in range(mx + 1)]
             for mention_idx, cluster_index in enumerate(assignments):
                 clusters[cluster_index].append(mapping_rev[mention_idx])  # map back
+
 
         # -> tensors
         if clusters:

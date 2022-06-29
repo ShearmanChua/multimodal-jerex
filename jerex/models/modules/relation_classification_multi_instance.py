@@ -31,8 +31,8 @@ class RelationClassificationMultiInstance(nn.Module):
         # obtain relation logits
         # chunk processing to reduce memory usage
         max_pairs = max_pairs if max_pairs is not None else rel_mention_pairs.shape[1]
-        print(max_pairs)
-        print(rel_mention_pairs.shape[1])
+        # print(max_pairs)
+        # print(rel_mention_pairs.shape[1])
         rel_mention_pair_reprs = torch.zeros([batch_size, rel_mention_pairs.shape[1], hidden_size]).to(self._device)
         h = h.unsqueeze(1)
 
