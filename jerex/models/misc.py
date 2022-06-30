@@ -145,7 +145,6 @@ def create_clusters(coref_clf: torch.tensor, mention_pairs: torch.tensor, pair_s
             for mention_idx, cluster_index in enumerate(assignments):
                 clusters[cluster_index].append(mapping_rev[mention_idx])  # map back
 
-
         # -> tensors
         if clusters:
             batch_clusters.append(util.padded_stack([torch.tensor(list(c), dtype=torch.long) for c in clusters]))
@@ -196,6 +195,7 @@ def create_local_entity_pairs(batch_clusters, batch_cluster_sample_masks,
         doc_rel_mention_pair_masks = []
 
         pair_idx = 0
+        print(clusters.shape)
         # for all pairs of entity clusters...
         for i1, c1 in enumerate(clusters):
             for i2, c2 in enumerate(clusters):
@@ -233,6 +233,8 @@ def create_local_entity_pairs(batch_clusters, batch_cluster_sample_masks,
                     doc_rel_mention_pair_masks.append(torch.ones(len(entity_pair_mp), dtype=torch.bool))
 
                     pair_idx += 1
+
+        print("Entity pairs: ", pair_idx)
 
         if doc_rel_mention_pairs:
             rel_entity_pairs.append(torch.tensor(doc_rel_entity_pairs, dtype=torch.long))

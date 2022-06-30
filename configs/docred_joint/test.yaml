@@ -1,6 +1,6 @@
 dataset:
-  test_path: ./data/temp.csv
-  # test_path: ./data/articles.csv
+  # test_path: ./data/temp.csv
+  test_path: ./data/articles_2.csv
   # test_path: ./data/datasets/docred_joint/test_joint.json
   types_path: ./data/datasets/docred_joint/types.json
   save_path: ./data
@@ -20,11 +20,11 @@ inference:
   max_rel_pairs: 50
 
 distribution:
-  gpus: []
+  gpus: [0]
   accelerator: ''
   prepare_data_per_node: false
 
-# hydra:
-#   run:
-#     dir: ./data/runs/${now:%Y-%m-%d}/${now:%H-%M-%S}/docred_1000
-#   output_subdir: run_config
+hydra:
+  run:
+    dir: ./data/runs/${now:%Y-%m-%d}/${now:%H-%M-%S}/docred_1000
+  output_subdir: run_config

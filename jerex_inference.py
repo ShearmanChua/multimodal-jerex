@@ -18,7 +18,7 @@ cs.store(name="test", node=TestConfig)
 
 
 @hydra.main(config_name='test', config_path='configs/docred_joint')
-def inference(cfg: TestConfig, data) -> None:
+def inference(cfg: TestConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
 
     util.config_to_abs_paths(cfg.dataset, 'test_path')

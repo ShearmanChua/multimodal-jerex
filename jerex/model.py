@@ -202,18 +202,8 @@ class JEREXModel(pl.LightningModule):
 
     def _inference_on_csv(self, batch, batch_index):
         """ Converts prediction results of an epoch and stores the predictions on disk for later evaluation"""
-        # for key in batch.keys():
-        #     if key != 'tokens':
-        #         print(key,batch[key].size())
-        #     else:
-        #         print(len(batch[key][0]))
-
-        # print(batch['tokens'])
 
         output = self(**batch, inference=True)
-
-        # evaluate batch
-        # _, mentions, clusters, entities, relations = self._evaluator.convert_batch(**output, batch=batch)[0]
 
         # evaluate batch
         predictions = self._evaluator.convert_batch(**output, batch=batch)
