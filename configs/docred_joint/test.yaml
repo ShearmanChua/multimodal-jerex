@@ -1,6 +1,6 @@
 dataset:
-  # test_path: ./data/temp.csv
-  test_path: ./data/articles_2.csv
+  test_path: ./data/temp.csv
+  # test_path: ./data/articles_2.csv
   # test_path: ./data/datasets/docred_joint/test_joint.json
   types_path: ./data/datasets/docred_joint/types.json
   save_path: ./data
@@ -20,7 +20,7 @@ inference:
   max_rel_pairs: 50
 
 distribution:
-  gpus: [0]
+  gpus: []
   accelerator: ''
   prepare_data_per_node: false
 

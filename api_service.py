@@ -56,13 +56,14 @@ async def link(request: Request):
     dict_str = await request.json()
     json_dict = dict_str
 
-    data = json_dict['text'].split("\n")
-    data = [text for text in data if len(text) > 5]
+    # data = json_dict['text'].split("\n")
+    # data = [text for text in data if len(text) > 5]
+    data = [json_dict['text']]
     print(data)
     test_configs = configs
     json_string = single_inference(test_configs, data)
 
-    json_string = json.dumps(json_string)
+    json_string = json.loads(json_string)
 
     return json_string
 
@@ -80,8 +81,10 @@ async def link(request: Request):
     results_df = model.test_on_df(configs)
     print(results_df.head())
 
-
-    os.remove(os.path.join(configs.dataset.save_path,"temp.csv"))
+    try:
+        os.remove(os.path.join(configs.dataset.save_path,"temp.csv"))
+    except:
+        print("cannot remove temp")
 
     df_json = results_df.to_json(orient="records")
     df_json = json.loads(df_json)

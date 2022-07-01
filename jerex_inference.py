@@ -28,8 +28,8 @@ def inference(cfg: TestConfig) -> None:
     util.config_to_abs_paths(cfg.model, 'model_path', 'tokenizer_path', 'encoder_config_path')
     util.config_to_abs_paths(cfg.misc, 'cache_path')
 
-    results_df = model.test_on_df(cfg)
-    print(results_df.head())
+    # results_df = model.test_on_df(cfg)
+    # print(results_df.head())
 
     # results_df = pd.read_csv(cfg.dataset.csv_path)
 
@@ -39,23 +39,23 @@ def inference(cfg: TestConfig) -> None:
 
     # entity_linking_df.to_csv(os.path.join(cfg.dataset.save_path,"articles_entity_linking.csv"),index=False)
 
-    # entity_linking_df = pd.read_csv(cfg.dataset.csv_path)
+    entity_linking_df = pd.read_csv(cfg.dataset.csv_path)
 
-    # entity_linking_df.fillna("",inplace=True)
+    entity_linking_df.fillna("",inplace=True)
 
-    # df_json = entity_linking_df.to_json(orient="records")
-    # df_json = json.loads(df_json)
+    df_json = entity_linking_df.to_json(orient="records")
+    df_json = json.loads(df_json)
     
-    # response = requests.post("http://blink:5000/df_link", json=df_json)
+    response = requests.post("http://blink:5000/df_link", json=df_json)
 
-    # print(type(response.json()))
+    print(type(response.json()))
 
-    # df = pd.json_normalize(response.json(), max_level=0)
+    df = pd.json_normalize(response.json(), max_level=0)
 
-    # print(df)
-    # print(df.info())
+    print(df)
+    print(df.info())
 
-    # df.to_csv(os.path.join(cfg.dataset.save_path,"articles_entity_linked.csv"),index=False)
+    df.to_csv(os.path.join(cfg.dataset.save_path,"articles_entity_linked.csv"),index=False)
 
     # for idx, row in results_df.iterrows():
     #     doc_id = row['doc_id']

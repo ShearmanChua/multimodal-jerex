@@ -550,12 +550,14 @@ def inference_on_fly(model, tokenizer, paras, task):
     nlp = English()
     nlp.add_pipe(nlp.create_pipe('sentencizer'))
 
-    relations_output = []
+    relation_df = pd.DataFrame(columns=['doc_id', 'tokens', 'relations'])
 
     for doc_idx, para in enumerate(paras):
+        print(para)
 
         str_sents = list(nlp(para).sents)
         token_sents = []
+        relations_output = []
         num_tokens = 0
         for sent in str_sents:
             tokens = list(nlp.tokenizer(sent.text))
@@ -566,7 +568,7 @@ def inference_on_fly(model, tokenizer, paras, task):
             token_sents.append(tokens)
 
         sentences, doc_encoding = parse_sentences(tokenizer, token_sents)
-        doc = Document(doc_idx, tokens, sentences, [], [], doc_encoding, 'generic')
+        doc = Document(doc_idx, util.flatten(token_sents), sentences, [], [], doc_encoding, 'generic')
 
         # doc = Document(doc_id=idx, tokens=[0,], sentences: List[Sentence],
         #          entities: List[Entity], relations: List[Relation], encoding: List[int], title: str)
@@ -626,14 +628,16 @@ def inference_on_fly(model, tokenizer, paras, task):
                             "tail": " ".join(tokens[obj_span[0]:obj_span[1]]),
                             "tail_span": [obj_span[0],obj_span[1]],
                             "tail_type": str(obj_type),
-                            "relation": str(relation_type),
-                            "tokens": tokens
+                            "relation": str(relation_type)
                         }
                     )
 
-    relation_df = pd.DataFrame(relations_output)
+        
+        relation_df.loc[-1] = [doc_idx,tokens,relations_output]  # adding a row
+        relation_df.index = relation_df.index + 1  # shifting index
+        relation_df = relation_df.sort_index()  # sorting by index
 
-    relation_df = relation_df.loc[relation_df.astype(str).drop_duplicates().index]
+    # relation_df = relation_df.loc[relation_df.astype(str).drop_duplicates().index]
 
     return relation_df.reset_index(drop=True)
 
