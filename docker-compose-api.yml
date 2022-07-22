@@ -14,7 +14,7 @@ services:
       CUDA_VISIBLE_DEVICES: 0
     ulimits:
       memlock: -1
-    shm_size: '16gb'
+    # shm_size: '16gb'
     volumes:
       - .:/jerex
     deploy:

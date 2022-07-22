@@ -18,7 +18,7 @@ inference:
   max_spans: 200
   max_coref_pairs: 50
   max_rel_pairs: 50
-
+  top_k_mentions: 50
 distribution:
   gpus: []
   accelerator: ''

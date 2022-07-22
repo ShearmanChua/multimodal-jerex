@@ -45,6 +45,7 @@ class JEREXModel(pl.LightningModule):
                  max_spans_train: int = None, max_spans_inference: int = None,
                  max_coref_pairs_train: int = None, max_coref_pairs_inference: int = None,
                  max_rel_pairs_train: int = None, max_rel_pairs_inference: int = None,
+                 top_k_mentions_train: int = None, top_k_mentions_inference: int = None,
                  examples_filename: str = 'examples.html',
                  store_examples=True, store_predictions=True, predictions_filename='predictions.json',
                  tmp_predictions_filename='.predictions_tmp.json', **kwargs):
@@ -87,6 +88,8 @@ class JEREXModel(pl.LightningModule):
         self._max_coref_pairs_inference = max_coref_pairs_inference
         self._max_rel_pairs_train = max_rel_pairs_train
         self._max_rel_pairs_inference = max_rel_pairs_inference
+        self._top_k_mentions_train = top_k_mentions_train
+        self._top_k_mentions_inference = top_k_mentions_inference
         self._store_examples = store_examples
         self._store_predicitons = store_predictions
 
@@ -109,9 +112,11 @@ class JEREXModel(pl.LightningModule):
         max_spans = self._max_spans_train if not inference else self._max_spans_inference
         max_coref_pairs = self._max_coref_pairs_train if not inference else self._max_coref_pairs_inference
         max_rel_pairs = self._max_rel_pairs_train if not inference else self._max_rel_pairs_inference
+        top_k_mentions = self._top_k_mentions_train if not inference else self._top_k_mentions_inference
+
 
         outputs = self.model(**batch, max_spans=max_spans, max_coref_pairs=max_coref_pairs,
-                             max_rel_pairs=max_rel_pairs, inference=inference)
+                             max_rel_pairs=max_rel_pairs,top_k_mentions=top_k_mentions, inference=inference)
 
         return outputs
 
@@ -214,10 +219,13 @@ class JEREXModel(pl.LightningModule):
             print("\n")
             print("Entities: ",entities)
             print("\n")
+            print("Clusters: ",clusters)
+            print("\n")
             print("Relations: ",relations)
             print("\n")
 
             relations_output = []
+            entities_output = []
 
             for sub, obj, relation_type in relations:
             
@@ -241,12 +249,27 @@ class JEREXModel(pl.LightningModule):
                                 "relation": str(relation_type)
                             }
                         )
-
+                        entities_output.append(
+                            {
+                                "entity_name": " ".join(tokens[sub_span[0]:sub_span[1]]),
+                                "entity_span": [sub_span[0],sub_span[1]],
+                                "entity_type": str(sub_type),
+                            }
+                            
+                        )
+                        entities_output.append(
+                            {
+                                "entity_name": " ".join(tokens[obj_span[0]:obj_span[1]]),
+                                "entity_span": [obj_span[0],obj_span[1]],
+                                "entity_type": str(obj_type),
+                            }
+                        )
+                        
             relations_output = [i for n, i in enumerate(relations_output) if i not in relations_output[n + 1:]]
             print(relations_output)
 
-            temp_df = pd.DataFrame(columns=['doc_id', 'tokens', 'relations'])
-            temp_df.loc[-1] = [doc_id.item(),tokens,relations_output]  # adding a row
+            temp_df = pd.DataFrame(columns=['doc_id', 'tokens', 'entities','relations'])
+            temp_df.loc[-1] = [doc_id.item(),tokens,entities_output,relations_output]  # adding a row
             temp_df.index = temp_df.index + 1  # shifting index
             temp_df = temp_df.sort_index()  # sorting by index
 
@@ -387,6 +410,8 @@ def train(cfg: TrainConfig):
                        max_coref_pairs_inference=cfg.inference.max_coref_pairs,
                        max_rel_pairs_train=cfg.training.max_rel_pairs,
                        max_rel_pairs_inference=cfg.inference.max_rel_pairs,
+                       top_k_mentions_train=cfg.training.top_k_mentions,
+                       top_k_mentions_inference=cfg.inference.top_k_mentions,
                        max_span_size=cfg.sampling.max_span_size)
 
     checkpoint_path = 'checkpoint'
@@ -431,6 +456,7 @@ def test(cfg: TestConfig):
                                             max_spans_inference=cfg.inference.max_spans,
                                             max_coref_pairs_inference=cfg.inference.max_coref_pairs,
                                             max_rel_pairs_inference=cfg.inference.max_rel_pairs,
+                                            top_k_mentions_inference=cfg.inference.top_k_mentions,
                                             encoder_path=None, **overrides)
 
     tokenizer = BertTokenizer.from_pretrained(model.hparams.tokenizer_path,
@@ -472,6 +498,7 @@ def test_on_df(cfg: TestConfig):
                                             max_spans_inference=cfg.inference.max_spans,
                                             max_coref_pairs_inference=cfg.inference.max_coref_pairs,
                                             max_rel_pairs_inference=cfg.inference.max_rel_pairs,
+                                            top_k_mentions_inference=cfg.inference.top_k_mentions,
                                             encoder_path=None, **overrides)
 
     tokenizer = BertTokenizer.from_pretrained(model.hparams.tokenizer_path,
@@ -653,6 +680,7 @@ def api_call_single(cfg: TestConfig, docs):
                                             max_spans_inference=cfg.inference.max_spans,
                                             max_coref_pairs_inference=cfg.inference.max_coref_pairs,
                                             max_rel_pairs_inference=cfg.inference.max_rel_pairs,
+                                            top_k_mentions_inference=cfg.inference.top_k_mentions,
                                             encoder_path=None, **overrides).eval()
 
 
@@ -680,6 +708,7 @@ def test_on_fly(cfg: TestConfig):
                                             max_spans_inference=cfg.inference.max_spans,
                                             max_coref_pairs_inference=cfg.inference.max_coref_pairs,
                                             max_rel_pairs_inference=cfg.inference.max_rel_pairs,
+                                            top_k_mentions_inference=cfg.inference.top_k_mentions,
                                             encoder_path=None, **overrides).eval()
 
 

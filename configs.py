@@ -108,6 +108,8 @@ class TrainingConfig:
     # Only needed in case of insufficient memory
     max_rel_pairs: Optional[int] = None
 
+    top_k_mentions: Optional[int] = None
+
 
 @dataclass
 class InferenceConfig:
@@ -128,6 +130,8 @@ class InferenceConfig:
     # to process simultaneously during inference
     # only needed in case of insufficient memory
     max_rel_pairs: Optional[int] = None
+
+    top_k_mentions: Optional[int] = None
 
 
 @dataclass
