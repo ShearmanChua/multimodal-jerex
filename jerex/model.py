@@ -227,6 +227,19 @@ class JEREXModel(pl.LightningModule):
             relations_output = []
             entities_output = []
 
+            for mention, obj_type in clusters:
+
+                mention_spans = [list(span) for span in mention]
+
+                entities_output.append(
+                    {
+                        "entity_names": [" ".join(tokens[span[0]:span[1]]) for span in mention_spans],
+                        "entity_spans": mention_spans,
+                        "entity_type": str(obj_type),
+                    }
+                )
+
+
             for sub, obj, relation_type in relations:
             
                 sub_spans = list(sub[0])
@@ -249,21 +262,21 @@ class JEREXModel(pl.LightningModule):
                                 "relation": str(relation_type)
                             }
                         )
-                        entities_output.append(
-                            {
-                                "entity_name": " ".join(tokens[sub_span[0]:sub_span[1]]),
-                                "entity_span": [sub_span[0],sub_span[1]],
-                                "entity_type": str(sub_type),
-                            }
+                        # entities_output.append(
+                        #     {
+                        #         "entity_name": " ".join(tokens[sub_span[0]:sub_span[1]]),
+                        #         "entity_span": [sub_span[0],sub_span[1]],
+                        #         "entity_type": str(sub_type),
+                        #     }
                             
-                        )
-                        entities_output.append(
-                            {
-                                "entity_name": " ".join(tokens[obj_span[0]:obj_span[1]]),
-                                "entity_span": [obj_span[0],obj_span[1]],
-                                "entity_type": str(obj_type),
-                            }
-                        )
+                        # )
+                        # entities_output.append(
+                        #     {
+                        #         "entity_name": " ".join(tokens[obj_span[0]:obj_span[1]]),
+                        #         "entity_span": [obj_span[0],obj_span[1]],
+                        #         "entity_type": str(obj_type),
+                        #     }
+                        # )
                         
             relations_output = [i for n, i in enumerate(relations_output) if i not in relations_output[n + 1:]]
             print(relations_output)
