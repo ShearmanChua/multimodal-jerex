@@ -1,11 +1,18 @@
-version: '3'
+version: '3.5'
+
+# To Join any other app setup using another network, change name and set external = true
+networks:
+  default:
+    name: multimodal
+    external: true
+
 services:
   jerex-api:
     build: ./
     stdin_open: true
     tty: true
     networks:
-      - api
+      - default
     ports:
       - 8080:8080
     command: ["uvicorn", "api_service:app", "--host", "0.0.0.0", "--port", "8080"]
@@ -14,7 +21,7 @@ services:
       CUDA_VISIBLE_DEVICES: 0
     ulimits:
       memlock: -1
-    shm_size: '16gb'
+    # shm_size: '16gb'
     volumes:
       - .:/jerex
     deploy:
@@ -24,6 +31,3 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
-
-networks:
-  api:

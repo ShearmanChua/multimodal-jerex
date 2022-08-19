@@ -28,8 +28,8 @@ class ModelConfig:
     tokenizer_path: str = MISSING
 
     # task-specific thresholds
-    mention_threshold: float = 0.85
-    coref_threshold: float = 0.85
+    mention_threshold: float = 0.8
+    coref_threshold: float = 0.8
     rel_threshold: float = 0.6
 
     # probability of neuron dropout in selected model
@@ -108,6 +108,8 @@ class TrainingConfig:
     # Only needed in case of insufficient memory
     max_rel_pairs: Optional[int] = None
 
+    top_k_mentions: Optional[int] = None
+
 
 @dataclass
 class InferenceConfig:
@@ -128,6 +130,8 @@ class InferenceConfig:
     # to process simultaneously during inference
     # only needed in case of insufficient memory
     max_rel_pairs: Optional[int] = None
+
+    top_k_mentions: Optional[int] = None
 
 
 @dataclass

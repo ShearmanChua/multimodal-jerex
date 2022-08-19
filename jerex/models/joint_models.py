@@ -68,7 +68,7 @@ class JointBaseModel(BertPreTrainedModel):
     def _forward_inference_common(self, encodings: torch.tensor, context_masks: torch.tensor,
                                   mention_masks: torch.tensor,
                                   mention_sizes: torch.tensor, mention_spans: torch.tensor,
-                                  mention_sample_masks: torch.tensor, max_spans=None, max_coref_pairs=None):
+                                  mention_sample_masks: torch.tensor, max_spans=None, max_coref_pairs=None, top_k_mentions=None):
         # get contextualized token embeddings from last transformer layer
         context_masks = context_masks.float()
         mention_masks = mention_masks.float()
@@ -84,6 +84,18 @@ class JointBaseModel(BertPreTrainedModel):
         mention_clf = self.mention_localization(mention_reprs, mention_sizes)
         valid_mentions = ((torch.sigmoid(mention_clf) >= self._mention_threshold).float() *
                           mention_sample_masks)
+
+        batch_size = valid_mentions.shape[0]
+
+        if top_k_mentions is not None:
+            for i in range(batch_size):
+                non_zero_indices = valid_mentions[i].nonzero().view(-1)
+                non_zero_spans = mention_spans[i][non_zero_indices].tolist()
+                if len(non_zero_spans) > top_k_mentions:
+                    print("Number of mentions exceeded top_k_mentions!!!")
+                    vals, idx = torch.sigmoid(mention_clf).topk(top_k_mentions)
+                    valid_mentions[i] = torch.zeros_like(torch.sigmoid(mention_clf))
+                    valid_mentions[i][idx] = vals
 
         # create mention pairs
         coref_mention_pairs, coref_mention_eds, coref_sample_masks = misc.create_coref_mention_pairs(
@@ -203,10 +215,10 @@ class JointMultiInstanceModel(JointBaseModel):
                            mention_sizes: torch.tensor, mention_spans: torch.tensor,
                            mention_sample_masks: torch.tensor, mention_sent_indices: torch.tensor,
                            mention_orig_spans: torch.tensor, max_spans: bool = None,
-                           max_coref_pairs: bool = None, max_rel_pairs: bool = None, *args, **kwargs):
+                           max_coref_pairs: bool = None, max_rel_pairs: bool = None,top_k_mentions: bool = None, *args, **kwargs):
         res = self._forward_inference_common(encodings, context_masks,
                                              mention_masks, mention_sizes, mention_spans,
-                                             mention_sample_masks, max_spans=max_spans, max_coref_pairs=max_coref_pairs)
+                                             mention_sample_masks, max_spans=max_spans, max_coref_pairs=max_coref_pairs, top_k_mentions=top_k_mentions)
         (h, mention_reprs, entity_reprs, clusters, entity_sample_masks, mention_pair_sample_masks,
          clusters_sample_masks, mention_clf, entity_clf, coref_clf) = res
 
@@ -286,10 +298,10 @@ class JointGlobalModel(JointBaseModel):
 
     def _forward_inference(self, encodings: torch.tensor, context_masks: torch.tensor, mention_masks: torch.tensor,
                            mention_sizes: torch.tensor, mention_spans: torch.tensor,
-                           mention_sample_masks: torch.tensor, max_spans=None, max_coref_pairs=None, *args, **kwargs):
+                           mention_sample_masks: torch.tensor, max_spans=None, max_coref_pairs=None, top_k_mentions: bool = None,*args, **kwargs):
         res = self._forward_inference_common(encodings, context_masks,
                                              mention_masks, mention_sizes, mention_spans,
-                                             mention_sample_masks, max_coref_pairs=max_coref_pairs, max_spans=max_spans)
+                                             mention_sample_masks, max_coref_pairs=max_coref_pairs, max_spans=max_spans, top_k_mentions=top_k_mentions)
         (h, mention_reprs, entity_reprs, clusters, entity_sample_masks, mention_pair_sample_masks,
          clusters_sample_masks, mention_clf, entity_clf, coref_clf) = res
 

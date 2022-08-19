@@ -24,6 +24,7 @@ class CoreferenceResolution(nn.Module):
         # obtain coref logits
         # chunk processing to reduce memory usage
         max_pairs = max_pairs if max_pairs is not None else coref_mention_pairs.shape[1]
+
         coref_eds = self.coref_ed_embeddings(coref_eds)
 
         for i in range(0, coref_mention_pairs.shape[1], max_pairs):
