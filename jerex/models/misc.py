@@ -234,7 +234,7 @@ def create_local_entity_pairs(batch_clusters, batch_cluster_sample_masks,
 
                     pair_idx += 1
 
-        print("Entity pairs: ", pair_idx)
+        # print("Entity pairs: ", pair_idx)
 
         if doc_rel_mention_pairs:
             rel_entity_pairs.append(torch.tensor(doc_rel_entity_pairs, dtype=torch.long))

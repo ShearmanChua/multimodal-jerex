@@ -257,6 +257,7 @@ class EntityMention:
 
     @property
     def orig_span_start(self):
+        # print(self._tokens)
         return self._tokens[0].doc_index
 
     @property

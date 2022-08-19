@@ -1,5 +1,7 @@
 FROM nvcr.io/nvidia/pytorch:20.12-py3
 
+COPY clearml.conf /root
+
 RUN mkdir -p /jerex
 WORKDIR /jerex
 
@@ -10,7 +12,7 @@ ENV PYTHONUNBUFFERED 1
 
 RUN pip install jupyter
 RUN pip install hydra-core --upgrade
-RUN pip install fastapi pandas requests && pip install yamlargparse==1.4.0 && pip install pyyaml && pip install "uvicorn[standard]"
+RUN pip install fastapi pandas requests clearml && pip install yamlargparse==1.4.0 && pip install pyyaml && pip install "uvicorn[standard]"
 RUN pip install --no-cache-dir -r requirements.txt
 
 CMD ["/bin/bash"]

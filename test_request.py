@@ -24,7 +24,7 @@ def predict_jerex(dataset: Dict):
 
 def predict_blink(dataset: Dict):
 
-    response = requests.post('http://0.0.0.0:5050/df_link', json = dataset)
+    response = requests.post('http://0.0.0.0:5000/df_link', json = dataset)
     # df_json = json.dumps(response.json())
     # df = pd.read_json(df_json, orient="records")
 
@@ -115,12 +115,12 @@ if __name__ == '__main__':
 
     entity_linking_df = pd.read_csv("data/articles_entity_linking.csv")
 
-    df_json = articles_df.to_json(orient="records")
-    df_json = json.loads(df_json)
-    jerex_results = predict_jerex(df_json)
-    # jerex_results = predict_jerex(dataset)
+    # df_json = articles_df.to_json(orient="records")
+    # df_json = json.loads(df_json)
+    # jerex_results = predict_jerex(df_json)
+    # # jerex_results = predict_jerex(dataset)
 
-    entity_linking_df = generate_entity_linking_df(jerex_results)
+    # entity_linking_df = generate_entity_linking_df(jerex_results)
 
     print(entity_linking_df)
 

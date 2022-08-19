@@ -275,6 +275,8 @@ class DocREDDataset(TorchDataset):
         return entity
 
     def _create_entity_mention(self, entity, tokens, sentence, phrase) -> EntityMention:
+        # if len(tokens) < 1:
+        #     print("entity:",entity,"tokens:", tokens,"sentence:", sentence,"phrase:", phrase)
         mention = EntityMention(self._meid, entity, tokens, sentence, phrase)
         self._entity_mentions[self._meid] = mention
         self._meid += 1

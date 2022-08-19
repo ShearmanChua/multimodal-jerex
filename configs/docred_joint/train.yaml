@@ -5,8 +5,8 @@ datasets:
 
 model:
   model_type: joint_multi_instance
-  encoder_path: ./bert/model
-  tokenizer_path: ./bert/tokenizer
+  encoder_path: bert-base-cased
+  tokenizer_path: bert-base-cased
   mention_threshold: 0.85
   coref_threshold: 0.85
   rel_threshold: 0.6
