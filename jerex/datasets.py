@@ -118,10 +118,10 @@ class DocREDDataset(TorchDataset):
                     self._parse_document_csv(row)
 
     def _parse_document(self, doc):
-        title = doc['title'] if 'title' in doc else 'No title'
+        title = doc['title'] 
         jsents = doc['sents']
         jrelations = doc['labels'] if 'labels' in doc else []
-        jentities = doc['vertexSet'] if 'vertexSet' in doc else []
+        jentities = doc['vertexSet'] 
 
         # parse tokens
         sentences, doc_encoding = self._parse_sentences(jsents)
@@ -168,8 +168,8 @@ class DocREDDataset(TorchDataset):
 
             sentence_tokens = []
 
-            if len(doc_encoding) >= 500:
-                break
+            # if len(doc_encoding) >= 500:
+            #     break
 
             for tok_sent_idx, token_phrase in enumerate(jtokens):
                 token_encoding = self._tokenizer.encode(token_phrase, add_special_tokens=False)
@@ -180,13 +180,13 @@ class DocREDDataset(TorchDataset):
 
                 token = self._create_token(tok_doc_idx, tok_sent_idx, span_start, span_end, token_phrase)
 
-                if len(doc_encoding) + len(token_encoding) >= 500:
-                    break
+                # if len(doc_encoding) + len(token_encoding) >= 500:
+                #     break
 
                 sentence_tokens.append(token)
                 doc_encoding += token_encoding
 
-                tok_doc_idx += 1
+                # tok_doc_idx += 1
 
             sentence = self._create_sentence(sidx, sentence_tokens)
             sentences.append(sentence)
@@ -205,6 +205,9 @@ class DocREDDataset(TorchDataset):
                 # create entity mention
                 sentence = sentences[jentityMention['sent_id']]
                 tokens = sentence.tokens[start:end]._tokens
+                if len(tokens)<1:
+                    print("sentence: ", sentence)
+                    print(jentityMention)
                 phrase = " ".join([t.phrase for t in tokens])
 
                 mention_params.append((entity_type, tokens, phrase, sentence))
