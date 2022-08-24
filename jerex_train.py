@@ -17,6 +17,10 @@ def train(cfg: TrainConfig) -> None:
     util.config_to_abs_paths(cfg.model, 'tokenizer_path', 'encoder_path')
     util.config_to_abs_paths(cfg.misc, 'cache_path')
 
+    # from clearml import Task, Dataset
+    # task = Task.init(project_name="Jerex_DWIE", task_name="train Jerex")
+    # task.set_base_docker("FROM nvcr.io/nvidia/pytorch:20.12-py3")
+
     model.train(cfg)
 
 

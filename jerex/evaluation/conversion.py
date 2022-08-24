@@ -20,7 +20,10 @@ def convert_gt_relation(relation, include_entity_type=False):
 def convert_pred_mentions(mention_clf: torch.tensor, mention_orig_spans: torch.tensor):
     mention_nonzero = mention_clf.nonzero().view(-1)
     converted_mentions = [tuple(span) for span in mention_orig_spans[mention_nonzero].tolist()]
-    assert len(converted_mentions) == len(set(converted_mentions))
+    # if len(converted_mentions) != len(set(converted_mentions)):
+    #     print(converted_mentions)
+    #     print(set(converted_mentions))
+    assert len(converted_mentions) == len(set(converted_mentions)), f"Mismatched mentions length {len(converted_mentions)}, {len(set(converted_mentions))}"
 
     return converted_mentions
 

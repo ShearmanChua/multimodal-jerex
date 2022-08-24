@@ -23,10 +23,6 @@ def create_coref_mention_pairs(valid_mentions, mention_spans, encodings, tokeniz
         non_zero_indices = valid_mentions[i].nonzero().view(-1)
         non_zero_spans = mention_spans[i][non_zero_indices].tolist()
         non_zero_indices = non_zero_indices.tolist()
-        # if len(non_zero_spans)>40:
-        #     print(len(non_zero_spans))
-        #     non_zero_spans = non_zero_spans[:40]
-        #     non_zero_indices = non_zero_indices[:40]
 
         sample_encodings = encodings[i]
 
@@ -195,7 +191,7 @@ def create_local_entity_pairs(batch_clusters, batch_cluster_sample_masks,
         doc_rel_mention_pair_masks = []
 
         pair_idx = 0
-        print(clusters.shape)
+        # print(clusters.shape)
         # for all pairs of entity clusters...
         for i1, c1 in enumerate(clusters):
             for i2, c2 in enumerate(clusters):
