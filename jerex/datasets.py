@@ -186,7 +186,7 @@ class DocREDDataset(TorchDataset):
                 sentence_tokens.append(token)
                 doc_encoding += token_encoding
 
-                # tok_doc_idx += 1
+                tok_doc_idx += 1
 
             sentence = self._create_sentence(sidx, sentence_tokens)
             sentences.append(sentence)
